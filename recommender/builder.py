@@ -3,17 +3,6 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
-from django.conf import settings
-from scraper.models import Article
-from .preprocessing import expand_words, clean_data
-
-
-import pickle
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import cosine_similarity
 from django.conf import settings
 from scraper.models import Article
 from .preprocessing import expand_words, clean_data
