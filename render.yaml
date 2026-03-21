@@ -24,8 +24,8 @@ services:
   - type: cron
     name: aeon-weekly-refresh
     runtime: docker
-    schedule: "0 2 * * 1"        # every Monday at 2am UTC
-    dockerCommand: sh -c "python manage.py run_scraper && python manage.py build_model"
+    schedule: "0 2 * * 1"
+    dockerCommand: sh -c "pip install -r requirements-ml.txt && python manage.py run_scraper && python manage.py build_model"
     envVars:
       - key: SECRET_KEY
         sync: false
