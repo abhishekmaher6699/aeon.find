@@ -16,3 +16,4 @@ asgiref==3.11.1
 sqlparse==0.5.5
 httpx==0.28.1
 pydantic==2.12.5
+tqdm==4.67.3

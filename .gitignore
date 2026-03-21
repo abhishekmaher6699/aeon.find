@@ -1,4 +1,6 @@
+aeonenv
 .env
+.env.build
 logs
 __pycache__
 artifacts

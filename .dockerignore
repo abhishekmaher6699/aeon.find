@@ -1,0 +1,10 @@
+aeonenv/
+.env
+*.pkl
+*.npy
+__pycache__/
+*.pyc
+.git/
+logs/
+staticfiles/
+artifacts/
