@@ -21,8 +21,8 @@ def recommend_by_url(url, top_n=10):
     urls = data['urls']
 
     if url in urls:
-        idx    = urls.index(url)
-        scores = data['sim_matrix'][idx].copy()
+        idx     = urls.index(url)
+        scores  = data['sim_matrix'][idx].copy()
         scores[idx] = -1
         indices = scores.argsort()[-top_n:][::-1]
     else:
@@ -42,8 +42,7 @@ def recommend_by_prompt(prompt, top_n=10):
     data      = load_artifacts()
     processed = clean_data(expand_words(prompt))
     vector    = data['vectorizer'].transform([processed])
-    pca_vec   = data['pca'].transform(vector.toarray()).astype(np.float32)
-    scores    = cosine_similarity(pca_vec, data['pca_matrix']).flatten()
+    scores    = cosine_similarity(vector, data['tfidf_matrix']).flatten()
     indices   = scores.argsort()[-top_n:][::-1]
     return _build_results(data, indices)
 

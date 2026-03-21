@@ -29,7 +29,7 @@ def build_and_save():
 
     print("Vectorizing...")
     vectorizer   = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(processed)
+    tfidf_matrix = vectorizer.fit_transform(processed)  # stays sparse
 
     print("Applying PCA...")
     pca        = PCA(n_components=100)
@@ -45,21 +45,17 @@ def build_and_save():
     emb_sim    = cosine_similarity(embeddings)
     sim_matrix = 0.5 * _normalize(tfidf_sim) + 0.5 * _normalize(emb_sim)
 
-    # store only what's needed at runtime
     data = {
-        "urls":        urls,
-        "titles":      titles,
-        "descriptions":descriptions,
-        "image_urls":  image_urls,
-        "vectorizer":  vectorizer,
-        "pca":         pca,
-        "pca_matrix":  pca_matrix,   # needed for unknown URL fallback + prompt
-        "sim_matrix":  sim_matrix,   # float32 to save memory
+        "urls":         urls,
+        "titles":       titles,
+        "descriptions": descriptions,
+        "image_urls":   image_urls,
+        "vectorizer":   vectorizer,
+        "tfidf_matrix": tfidf_matrix,                    # sparse, ~5-10MB
+        "pca":          pca,
+        "pca_matrix":   pca_matrix.astype(np.float32),  # float32, ~1MB
+        "sim_matrix":   sim_matrix.astype(np.float32),  # float32, ~25MB
     }
-
-    # convert to float32 to halve memory usage
-    data["pca_matrix"] = pca_matrix.astype(np.float32)
-    data["sim_matrix"] = sim_matrix.astype(np.float32)
 
     settings.ARTIFACTS_DIR.mkdir(exist_ok=True)
     path = settings.ARTIFACTS_DIR / "objects.pkl"
