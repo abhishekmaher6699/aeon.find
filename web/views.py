@@ -11,19 +11,25 @@ def results(request):
     if not query:
         return render(request, 'index.html')
 
-    # auto-detect URL regardless of which tab they used
-    if query.startswith('https://aeon.co/essays/'):
-        recommendations = recommend_by_url(query)
-        mode = 'url'
-    elif query.startswith('http://') or query.startswith('https://'):
+    try:
+        if query.startswith('https://aeon.co/essays/'):
+            recommendations = recommend_by_url(query)
+            mode = 'url'
+        elif query.startswith('http://') or query.startswith('https://'):
+            return render(request, 'results.html', {
+                'error': 'We only support Aeon essay URLs. Try https://aeon.co/essays/...',
+                'query': query,
+                'mode': mode,
+            })
+        else:
+            recommendations = recommend_by_prompt(query)
+            mode = 'prompt'
+    except Exception as e:
         return render(request, 'results.html', {
-            'error': 'We only support Aeon essay URLs. Try https://aeon.co/essays/...',
+            'error': str(e),
             'query': query,
             'mode': mode,
         })
-    else:
-        recommendations = recommend_by_prompt(query)
-        mode = 'prompt'
 
     return render(request, 'results.html', {
         'recommendations': recommendations,
