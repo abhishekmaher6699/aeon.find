@@ -1,7 +1,6 @@
 services:
   - type: web
     name: aeon
-    runtime: docker
     image:
       url: docker.io/abkmhr12/aeon:latest
     plan: starter
