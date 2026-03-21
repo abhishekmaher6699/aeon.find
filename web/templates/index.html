@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}
+
+Aeon.Find — Discover Essays
+
+{% endblock %} 
+
+
+{% block extra_css %}
+
+<style>
+
+  /* body { overflow: hidden;} */
+  .hero {
+    min-height: calc(100vh - 180px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 1rem 1rem;
+  }
+
+  .hero h1 {
+    font-family: "Playfair Display", serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.6rem;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    max-width: 380px;
+    line-height: 1.6;
+    margin-bottom: 1.8rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .tab {
+    padding: 0.4rem 1rem;
+    border: 1.5px solid var(--border);
+    background: none;
+    border-radius: 3px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  .tab.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #fff;
+  }
+
+  .search-form {
+    width: 100%;
+    max-width: 520px;
+    position: relative;
+  }
+
+  .search-form input {
+    width: 100%;
+    padding: 0.9rem 5rem 0.9rem 1.2rem;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.9rem;
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-form input:focus {
+    border-color: var(--accent);
+  }
+  .search-form input::placeholder {
+    color: var(--muted);
+  }
+
+  .search-form button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 2px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .search-form button:hover {
+    opacity: 0.85;
+  }
+
+  .how-it-works {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    max-width: 600px;
+    margin: 2.5rem auto 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .how-item {
+    padding: 1.2rem 1rem;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .how-item:last-child {
+    border-right: none;
+  }
+
+  .how-item .num {
+    font-family: "Playfair Display", serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    opacity: 0.4;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .how-item h3 {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  .how-item p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 500px) {
+    .how-it-works {
+      grid-template-columns: 1fr;
+    }
+    .how-item {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .how-item:last-child {
+      border-bottom: none;
+    }
+  }
+</style>
+{% endblock %} 
+
+{% block content %}
+<div class="hero">
+  <h1>Find your next <em>great read</em></h1>
+  <p class="hero-sub">
+    Search by topic or find essays similar to one you're reading.
+  </p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(event, 'prompt')">
+      By Topic
+    </button>
+    <button class="tab" onclick="switchTab(event, 'url')">By URL</button>
+  </div>
+
+  <form class="search-form" action="/results/" method="GET">
+    <input type="hidden" name="mode" id="mode-input" value="prompt" />
+    <input
+      type="text"
+      name="query"
+      id="query-input"
+      placeholder="e.g. free will and determinism"
+      autofocus
+    />
+    <button type="submit">Find</button>
+  </form>
+
+  <div class="how-it-works">
+    <div class="how-item">
+      <div class="num">01</div>
+      <h3>Type a topic</h3>
+      <p>Describe what you're curious about.</p>
+    </div>
+    <div class="how-item">
+      <div class="num">02</div>
+      <h3>Or paste a URL</h3>
+      <p>Find essays similar to one you're reading.</p>
+    </div>
+    <div class="how-item">
+      <div class="num">03</div>
+      <h3>Discover</h3>
+      <p>Get 10 essays matched to your interest.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(event, mode) {
+    document.getElementById("mode-input").value = mode;
+    const input = document.getElementById("query-input");
+    document
+      .querySelectorAll(".tab")
+      .forEach((t) => t.classList.remove("active"));
+    event.target.classList.add("active");
+    input.placeholder =
+      mode === "url"
+        ? "https://aeon.co/essays/..."
+        : "e.g. free will and determinism";
+  }
+</script>
+{% endblock %}

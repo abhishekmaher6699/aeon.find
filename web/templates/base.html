@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Aeon Recommender{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f5f0e8;
+        --ink: #1a1208;
+        --accent: #c8410a;
+        --muted: #8a7f72;
+        --card-bg: #fff;
+        --border: #e0d9ce;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "DM Sans", sans-serif;
+        font-weight: 300;
+        min-height: 100vh;
+      }
+
+      nav {
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+      }
+
+      nav a.logo {
+        font-family: "Playfair Display", serif;
+        font-size: 1.4rem;
+        color: var(--ink);
+        text-decoration: none;
+        letter-spacing: -0.02em;
+      }
+
+      nav a.logo span {
+        color: var(--accent);
+      }
+
+      nav .nav-links a {
+        font-size: 0.85rem;
+        color: var(--muted);
+        text-decoration: none;
+        margin-left: 2rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        transition: color 0.2s;
+      }
+
+      nav .nav-links a:hover {
+        color: var(--ink);
+      }
+
+      main {
+        padding: 1rem 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      footer {
+        text-align: center;
+        padding: 2rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .tab {
+        padding: 0.5rem 1.2rem;
+        border: 1.5px solid var(--border);
+        background: none;
+        border-radius: 4px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.85rem;
+        cursor: pointer;
+        color: var(--muted);
+        transition: all 0.2s;
+      }
+
+      .tab.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: #fff;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="logo">Aeon<span>.</span>Find</a>
+      <div class="nav-links">
+        <a href="/">Search</a>
+        <a href="/extensions/">Extension</a>
+      </div>
+    </nav>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>
+      Essays sourced from
+      <a href="https://aeon.co" target="_blank" style="color: var(--accent)"
+        >Aeon</a
+      >
+    </footer>
+  </body>
+</html>

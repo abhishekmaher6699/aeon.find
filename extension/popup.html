@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aeon.Find</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="header">
+    <span class="logo">Aeon<em>.</em>Find</span>
+  </div>
+
+  <div class="content">
+    <div class="loading hidden" id="loading">
+      <div class="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <p>Finding similar essays…</p>
+    </div>
+
+    <div class="not-aeon hidden" id="not-aeon">
+      <div class="not-aeon-icon">✦</div>
+      <p>Visit an Aeon essay to get recommendations.</p>
+      <a href="https://aeon.co/essays" target="_blank">Browse Aeon →</a>
+    </div>
+
+    <div class="error-state hidden" id="error-state">
+      <div class="error-icon">!</div>
+      <p id="error-message">Could not load recommendations.</p>
+      <span class="error-hint">Make sure the server is running.</span>
+    </div>
+
+    <div id="results" class="results hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

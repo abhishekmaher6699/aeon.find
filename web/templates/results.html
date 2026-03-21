@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Results for "{{ query }}" — Aeon.Find{% endblock %}
+
+{% block extra_css %}
+<style>
+  .results-header {
+    padding: 2rem 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .results-header h1 {
+    font-family: "Playfair Display", serif;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    letter-spacing: -0.02em;
+  }
+
+  .results-header h1 span {
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .search-again {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .search-again input {
+    width: 260px;
+    padding: 0.55rem 0.9rem;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.85rem;
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--ink);
+    outline: none;
+  }
+
+  .search-again input:focus { border-color: var(--accent); }
+
+  .search-again button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.55rem 1rem;
+    border-radius: 4px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .error-msg {
+    padding: 1rem 1.5rem;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    color: var(--accent);
+    font-size: 0.88rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+  }
+
+  .card-img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+    background: var(--border);
+  }
+
+  .card-body {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .card-title {
+    font-family: "Playfair Display", serif;
+    font-size: 1rem;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .card-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.55;
+    flex: 1;
+  }
+
+  .card-link {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--muted);
+  }
+
+  .no-results h2 {
+    font-family: "Playfair Display", serif;
+    font-size: 1.4rem;
+    margin-bottom: 0.4rem;
+    color: var(--ink);
+  }
+
+  @media (max-width: 600px) {
+    .results-header { flex-direction: column; align-items: flex-start; }
+    .search-again input { width: 180px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="results-header">
+  <h1>Essays about <span>"{{ query }}"</span></h1>
+  <form class="search-again" action="/results/" method="GET">
+    <input type="hidden" name="mode" value="{{ mode }}" />
+    <input type="text" name="query" value="{{ query }}" />
+    <button type="submit">Search</button>
+  </form>
+</div>
+
+{% if error %}
+  <div class="error-msg">{{ error }}</div>
+{% elif recommendations %}
+  <div class="grid">
+    {% for article in recommendations %}
+    <a class="card" href="{{ article.url }}" target="_blank" rel="noopener">
+      {% if article.image_url %}
+      <img class="card-img" src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy" />
+      {% endif %}
+      <div class="card-body">
+        <div class="card-title">{{ article.title }}</div>
+        <div class="card-desc">{{ article.description }}</div>
+        <div class="card-link">Read on Aeon →</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="no-results">
+    <h2>No results found</h2>
+    <p>Try a different topic or paste an essay URL.</p>
+  </div>
+{% endif %}
+{% endblock %}
