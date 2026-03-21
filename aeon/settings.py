@@ -93,3 +93,18 @@ ARTIFACTS_DIR = Path(os.getenv('ARTIFACTS_DIR', BASE_DIR / 'artifacts'))
 
 CORS_ALLOW_ALL_ORIGINS = os.getenv('DEBUG', 'False') == 'True'
 CORS_ALLOWED_ORIGINS = [o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o]
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',
+    },
+}
