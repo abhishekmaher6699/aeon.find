@@ -22,7 +22,7 @@ def recommend_by_url(url, top_n=10):
 
     if url in urls:
         idx = urls.index(url)
-        scores = data['hybrid_sim'][idx].copy()
+        scores = data['sim_matrix'][idx].copy()
         scores[idx] = -1
         indices = scores.argsort()[-top_n:][::-1]
     else:
@@ -36,7 +36,6 @@ def recommend_by_url(url, top_n=10):
         indices = scores.argsort()[-top_n:][::-1]
 
     return _build_results(data, indices)
-
 
 def recommend_by_prompt(prompt, top_n=10):
     data = load_artifacts()
