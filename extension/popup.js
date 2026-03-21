@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000/api/recommend/url";
+const API_URL = "https://aeon-latest.onrender.com/api/recommend/url";
 
 async function getRecommendations(url) {
   const response = await fetch(API_URL, {
@@ -21,7 +21,7 @@ function escapeHtml(text) {
 
 // Show only one state at a time
 function showOnly(id) {
-  ["loading", "not-aeon", "error-state", "results"].forEach(el => {
+  ["loading", "not-aeon", "error-state", "results"].forEach((el) => {
     document.getElementById(el).classList.add("hidden");
   });
   document.getElementById(id).classList.remove("hidden");
@@ -30,7 +30,9 @@ function showOnly(id) {
 function renderResults(articles) {
   const container = document.getElementById("results");
 
-  container.innerHTML = articles.map((a) => `
+  container.innerHTML = articles
+    .map(
+      (a) => `
     <a class="card" href="${a.url}" target="_blank">
       <img class="card-img" src="${a.image_url}" alt="" />
       <div class="card-overlay">
@@ -38,7 +40,9 @@ function renderResults(articles) {
         <div class="card-desc">${escapeHtml(a.description)}</div>
       </div>
     </a>
-  `).join("");
+  `,
+    )
+    .join("");
 
   showOnly("results");
 }
@@ -46,32 +50,31 @@ function renderResults(articles) {
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab.url;
-
-  const statusEl = document.getElementById("status");
+  console.log(url)
 
   if (!url.includes("aeon.co/essays/")) {
     showOnly("not-aeon");
-    statusEl.textContent = "not on aeon";
     return;
   }
-
 
   try {
     const articles = await getRecommendations(url);
 
     if (!articles || articles.length === 0) {
-      document.getElementById("error-message").textContent = "No recommendations found.";
+      document.getElementById("error-message").textContent =
+        "No recommendations found.";
       document.querySelector(".error-hint").textContent = "";
       showOnly("error-state");
       return;
     }
 
     renderResults(articles);
-
   } catch (e) {
     console.error(e);
-    document.getElementById("error-message").textContent = "Could not load recommendations.";
-    document.querySelector(".error-hint").textContent = "Make sure the server is running.";
+    document.getElementById("error-message").textContent =
+      "Could not load recommendations.";
+    document.querySelector(".error-hint").textContent =
+      "Make sure the server is running.";
     showOnly("error-state");
   }
 }

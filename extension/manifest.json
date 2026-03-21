@@ -7,11 +7,11 @@
   "host_permissions": [
     "https://aeon.co/*",
     "https://images.aeonmedia.co/*",
-    "http://localhost:8000/*"
+    "https://aeon-latest.onrender.com/*"
   ],
-  "content_security_policy": {
-    "extension_pages": "default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src http://localhost:8000"
-  },
+"content_security_policy": {
+    "extension_pages": "default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://aeon-latest.onrender.com"
+},
   "action": {
     "default_popup": "popup.html",
     "default_title": "Aeon.Find"

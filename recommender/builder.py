@@ -27,7 +27,7 @@ def build_and_save():
     print("Preprocessing...")
     processed = [clean_data(expand_words(c)) for c in contents]
 
-    print("Vectorizing (TF-IDF)...")
+    print("Vectorizing...")
     vectorizer   = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(processed)
 
@@ -35,31 +35,31 @@ def build_and_save():
     pca        = PCA(n_components=100)
     pca_matrix = pca.fit_transform(tfidf_matrix.toarray())
 
-    print("Computing TF-IDF similarity matrix...")
-    tfidf_sim = cosine_similarity(pca_matrix, pca_matrix)
-
-    print("Building sentence embeddings...")
+    print("Building embeddings...")
     from sentence_transformers import SentenceTransformer
     model      = SentenceTransformer("all-MiniLM-L6-v2")
     embeddings = model.encode(contents, show_progress_bar=True, batch_size=32)
 
-    print("Computing embedding similarity matrix...")
-    emb_sim = cosine_similarity(embeddings, embeddings)
+    print("Computing similarity matrices...")
+    tfidf_sim  = cosine_similarity(pca_matrix)
+    emb_sim    = cosine_similarity(embeddings)
+    sim_matrix = 0.5 * _normalize(tfidf_sim) + 0.5 * _normalize(emb_sim)
 
-    print("Building hybrid similarity matrix...")
-    hybrid_sim = _build_hybrid_matrix(tfidf_sim, emb_sim, alpha=0.5)
-
+    # store only what's needed at runtime
     data = {
-        "urls":         urls,
-        "titles":       titles,
-        "descriptions": descriptions,
-        "image_urls":   image_urls,
-        "vectorizer":   vectorizer,
-        "tfidf_matrix": tfidf_matrix,
-        "pca":          pca,
-        "pca_matrix":   pca_matrix,
-        "sim_matrix":   hybrid_sim,
+        "urls":        urls,
+        "titles":      titles,
+        "descriptions":descriptions,
+        "image_urls":  image_urls,
+        "vectorizer":  vectorizer,
+        "pca":         pca,
+        "pca_matrix":  pca_matrix,   # needed for unknown URL fallback + prompt
+        "sim_matrix":  sim_matrix,   # float32 to save memory
     }
+
+    # convert to float32 to halve memory usage
+    data["pca_matrix"] = pca_matrix.astype(np.float32)
+    data["sim_matrix"] = sim_matrix.astype(np.float32)
 
     settings.ARTIFACTS_DIR.mkdir(exist_ok=True)
     path = settings.ARTIFACTS_DIR / "objects.pkl"
@@ -70,14 +70,8 @@ def build_and_save():
     print(f"File size: {path.stat().st_size / 1024 / 1024:.1f} MB")
 
 
-def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
+def _normalize(matrix):
     mins  = matrix.min(axis=1, keepdims=True)
     maxs  = matrix.max(axis=1, keepdims=True)
     denom = np.where(maxs - mins == 0, 1, maxs - mins)
     return (matrix - mins) / denom
-
-
-def _build_hybrid_matrix(tfidf_sim, emb_sim, alpha):
-    tfidf_norm = _normalize_rows(tfidf_sim)
-    emb_norm   = _normalize_rows(emb_sim)
-    return alpha * tfidf_norm + (1 - alpha) * emb_norm
