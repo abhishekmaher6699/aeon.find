@@ -83,9 +83,8 @@ def run_scraper():
 
             if Article.objects.filter(slug=slug).exists():
                 print(f"Already exists, stopping: {slug}")
-                # stop = True
-                # break
-                continue
+                stop = True
+                break
 
             content = scrape_content(slug)
 
