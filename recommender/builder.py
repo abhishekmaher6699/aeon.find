@@ -23,9 +23,13 @@ def build_and_save():
     descriptions = [a["description"] for a in articles]
     image_urls   = [a["image_url"]   for a in articles]
     contents     = [a["content"]     for a in articles]
+    combined_texts = [
+        " ".join(part for part in [title, description, content] if part)
+        for title, description, content in zip(titles, descriptions, contents)
+    ]
 
     print("Preprocessing...")
-    processed = [clean_data(expand_words(c)) for c in contents]
+    processed = [clean_data(expand_words(text)) for text in combined_texts]
 
     print("Vectorizing...")
     vectorizer   = TfidfVectorizer()
@@ -38,7 +42,7 @@ def build_and_save():
     print("Building embeddings...")
     from sentence_transformers import SentenceTransformer
     model      = SentenceTransformer("all-MiniLM-L6-v2")
-    embeddings = model.encode(contents, show_progress_bar=True, batch_size=32)
+    embeddings = model.encode(combined_texts, show_progress_bar=True, batch_size=32)
 
     print("Computing similarity matrices...")
     tfidf_sim  = cosine_similarity(pca_matrix)

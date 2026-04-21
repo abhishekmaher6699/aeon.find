@@ -13,11 +13,14 @@ QUERY = """
 query getAeonArticlesByType($type: [ArticleTypeEnum!], $afterCursor: String) {
   articles(site: aeon, type: $type, status: [published], sort: {field: published_at, order: desc}, after: $afterCursor, first: 12) {
     nodes {
-      slug title standfirstLong
+      slug
+      title
+      standfirstShort
+      standfirstLong
       authors { name }
-      primaryTopic { title }
+      primaryTopic { title slug }
       section { slug }
-      image { url }
+      image { url alt }
     }
     pageInfo { hasNextPage endCursor }
   }
@@ -55,16 +58,120 @@ def fetch_page(after_cursor=None):
     return articles
 
 
-def scrape_content(slug):
+def fetch_recent_article_metadata(slug, max_pages=5):
+    logger.info("Looking up recent article metadata | slug=%s max_pages=%s", slug, max_pages)
+    cursor = None
+
+    for page_number in range(1, max_pages + 1):
+        data = fetch_page(cursor)
+        nodes = data["nodes"]
+        logger.info(
+            "Scanning metadata page | slug=%s page_number=%s nodes=%s",
+            slug,
+            page_number,
+            len(nodes),
+        )
+
+        for node in nodes:
+            if node["slug"] == slug:
+                logger.info(
+                    "Recent article metadata found | slug=%s page_number=%s title=%s",
+                    slug,
+                    page_number,
+                    node["title"][:120],
+                )
+                return node
+
+        if not data["pageInfo"]["hasNextPage"]:
+            break
+
+        cursor = data["pageInfo"]["endCursor"]
+
+    logger.warning("Recent article metadata not found | slug=%s scanned_pages=%s", slug, max_pages)
+    return None
+
+
+def build_seed_text_from_metadata(node):
+    if not node:
+        return ""
+
+    standfirst_short = node.get("standfirstShort", "")
+    standfirst_long = node.get("standfirstLong", "")
+    primary_topic = node.get("primaryTopic") or {}
+    section = node.get("section") or {}
+    image = node.get("image") or {}
+
+    parts = [
+        node.get("title", ""),
+        standfirst_short,
+        standfirst_long,
+        primary_topic.get("title", ""),
+        primary_topic.get("slug", ""),
+        section.get("slug", ""),
+        image.get("alt", ""),
+    ]
+
+    authors = " ".join(author.get("name", "") for author in node.get("authors", []) if author.get("name"))
+    if authors:
+        parts.append(authors)
+
+    metadata = [
+        part.strip()
+        for part in parts
+        if part and part.strip()
+    ]
+
+    text = " ".join(metadata)
+    logger.info(
+        "Built seed text from metadata | slug=%s fields=%s chars=%s preview=%s",
+        node.get("slug"),
+        metadata,
+        len(text),
+        text[:240],
+    )
+    return text
+
+
+def scrape_content(slug, max_attempts=3, request_timeout=30, wait_on_rate_limit=True):
     url = f"https://aeon.co/essays/{slug}"
-    logger.info("Scraping content | slug=%s url=%s", slug, url)
+    logger.info(
+        "Scraping content | slug=%s url=%s max_attempts=%s request_timeout=%s wait_on_rate_limit=%s",
+        slug,
+        url,
+        max_attempts,
+        request_timeout,
+        wait_on_rate_limit,
+    )
 
     try:
-        response = httpx.get(url, headers=HEADERS, timeout=30, follow_redirects=True)
-        if response.status_code == 429:
-            logger.warning("Rate limited while scraping | slug=%s wait_seconds=10", slug)
-            time.sleep(10)
-            response = httpx.get(url, headers=HEADERS, timeout=30, follow_redirects=True)
+        response = None
+        for attempt in range(1, max_attempts + 1):
+            response = httpx.get(url, headers=HEADERS, timeout=request_timeout, follow_redirects=True)
+            if response.status_code != 429:
+                break
+
+            retry_after = response.headers.get("retry-after")
+            try:
+                wait_seconds = int(retry_after) if retry_after else min(10 * attempt, 30)
+            except ValueError:
+                wait_seconds = min(10 * attempt, 30)
+
+            logger.warning(
+                "Rate limited while scraping | slug=%s attempt=%s wait_seconds=%s",
+                slug,
+                attempt,
+                wait_seconds,
+            )
+
+            if not wait_on_rate_limit:
+                logger.info("Skipping rate-limit wait and falling back quickly | slug=%s attempt=%s", slug, attempt)
+                break
+
+            if attempt < max_attempts:
+                time.sleep(wait_seconds)
+
+        if response is None:
+            raise RuntimeError("No response received while scraping.")
         response.raise_for_status()
 
         final_url = str(response.url)

@@ -51,31 +51,50 @@ def recommend_by_url(url, top_n=10):
             [float(scores[i]) for i in indices[:5]],
         )
     else:
-        from scraper.scraper import scrape_content
+        from scraper.scraper import (
+            build_seed_text_from_metadata,
+            fetch_recent_article_metadata,
+            scrape_content,
+        )
         slug      = url.rstrip('/').split('/')[-1]
-        content   = scrape_content(slug)
+        content   = scrape_content(
+            slug,
+            max_attempts=1,
+            request_timeout=8,
+            wait_on_rate_limit=False,
+        )
+        source    = "scrape"
+
+        if not content.strip():
+            logger.warning("Scrape returned empty content, trying metadata fallback | url=%s slug=%s", url, slug)
+            metadata = fetch_recent_article_metadata(slug, max_pages=3)
+            content = build_seed_text_from_metadata(metadata)
+            source = "metadata"
+
         processed = clean_data(expand_words(content))
         logger.info(
-            "Unseen URL path used | url=%s slug=%s raw_chars=%s processed_chars=%s processed_preview=%s",
+            "Unseen URL path used | url=%s slug=%s source=%s raw_chars=%s processed_chars=%s processed_preview=%s",
             url,
             slug,
+            source,
             len(content),
             len(processed),
             processed[:240],
         )
         if not content.strip():
-            logger.error("Unseen URL scrape produced empty content | url=%s slug=%s", url, slug)
-            raise ValueError("Could not scrape article content for that Aeon URL.")
+            logger.error("Unseen URL produced empty text after fallback | url=%s slug=%s", url, slug)
+            raise ValueError("Could not fetch usable text for that Aeon URL.")
         if not processed.strip():
-            logger.error("Unseen URL preprocessing produced empty content | url=%s slug=%s", url, slug)
+            logger.error("Unseen URL preprocessing produced empty text | url=%s slug=%s source=%s", url, slug, source)
             raise ValueError("Could not extract usable text from that Aeon URL.")
         vector    = data['vectorizer'].transform([processed])
         pca_vec   = data['pca'].transform(vector.toarray()).astype(np.float32)
         scores    = cosine_similarity(pca_vec, data['pca_matrix']).flatten()
         indices   = scores.argsort()[-top_n:][::-1]
         logger.info(
-            "Unseen URL similarity computed | url=%s vector_shape=%s pca_shape=%s top_scores=%s",
+            "Unseen URL similarity computed | url=%s source=%s vector_shape=%s pca_shape=%s top_scores=%s",
             url,
+            source,
             getattr(vector, 'shape', None),
             getattr(pca_vec, 'shape', None),
             [float(scores[i]) for i in indices[:5]],
