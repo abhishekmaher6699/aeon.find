@@ -26,13 +26,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # - name: Run scraper
-      #   env:
-      #     SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      #     DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      #     ARTIFACTS_DIR: ./artifacts
-      #     DJANGO_SETTINGS_MODULE: aeon.settings
-      #   run: python manage.py run_scraper
+      - name: Run scraper
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ARTIFACTS_DIR: ./artifacts
+          DJANGO_SETTINGS_MODULE: aeon.settings
+        run: python manage.py run_scraper
 
       - name: Build and push
         uses: docker/build-push-action@v5

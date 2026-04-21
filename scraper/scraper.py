@@ -111,10 +111,6 @@ def build_seed_text_from_metadata(node):
         image.get("alt", ""),
     ]
 
-    authors = " ".join(author.get("name", "") for author in node.get("authors", []) if author.get("name"))
-    if authors:
-        parts.append(authors)
-
     metadata = [
         part.strip()
         for part in parts
