@@ -131,12 +131,12 @@ def build_seed_text_from_metadata(node):
 def scrape_content(slug, max_attempts=3, request_timeout=30, wait_on_rate_limit=True):
     url = f"https://aeon.co/essays/{slug}"
     logger.info(
-        "Scraping content | slug=%s url=%s max_attempts=%s request_timeout=%s wait_on_rate_limit=%s",
+        "Scraping content | slug=%s url=%s max_attempts=%s request_timeout=%s",
         slug,
         url,
         max_attempts,
         request_timeout,
-        wait_on_rate_limit,
+        # wait_on_rate_limit,
     )
 
     try:
