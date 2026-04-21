@@ -182,6 +182,15 @@ body {
   line-height: 1.5;
 }
 
+/* Keep summary styles commented out until enough feedback data exists. */
+/*
+.feedback-summary {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ink);
+}
+*/
+
 .feedback-actions {
   display: flex;
   gap: 8px;

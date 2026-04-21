@@ -1,6 +1,7 @@
 const API_BASE_URL = "https://aeon-latest.onrender.com/api";
 const RECOMMEND_API_URL = `${API_BASE_URL}/recommend/url`;
 const FEEDBACK_API_URL = `${API_BASE_URL}/feedback/recommendation`;
+const ANONYMOUS_ID_KEY = "aeon-feedback-anonymous-id";
 
 let currentSourceUrl = "";
 let currentRecommendations = [];
@@ -20,6 +21,7 @@ async function saveFeedback(vote) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      anonymous_id: await getAnonymousId(),
       surface: "extension",
       input_type: "url",
       input_value: currentSourceUrl,
@@ -34,6 +36,54 @@ async function saveFeedback(vote) {
   if (!response.ok) {
     throw new Error("Feedback API error");
   }
+
+  return response.json();
+}
+
+function buildLocalResultSetKey() {
+  const urls = currentRecommendations.map((item) => item.url).join("|");
+  return `aeon-feedback-vote:url:${currentSourceUrl}:${urls}`;
+}
+
+function storageGet(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, resolve);
+  });
+}
+
+function storageSet(values) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(values, resolve);
+  });
+}
+
+function createAnonymousId() {
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function getAnonymousId() {
+  const stored = await storageGet([ANONYMOUS_ID_KEY]);
+  if (stored[ANONYMOUS_ID_KEY]) {
+    return stored[ANONYMOUS_ID_KEY];
+  }
+
+  const anonymousId = createAnonymousId();
+  await storageSet({ [ANONYMOUS_ID_KEY]: anonymousId });
+  return anonymousId;
+}
+
+async function getStoredVote() {
+  const key = buildLocalResultSetKey();
+  const stored = await storageGet([key]);
+  return stored[key] || "";
+}
+
+async function setStoredVote(vote) {
+  const key = buildLocalResultSetKey();
+  await storageSet({ [key]: vote });
 }
 
 function escapeHtml(text) {
@@ -74,6 +124,8 @@ function renderResults(articles) {
   container.innerHTML += `
     <div class="feedback-panel">
       <div class="feedback-copy">Were these recommendations useful overall?</div>
+      <!-- Keep summary hidden for now until enough feedback data exists. -->
+      <!-- <div class="feedback-summary" id="feedback-summary"></div> -->
       <div class="feedback-actions">
         <button class="feedback-btn" type="button" data-vote="useful">Useful</button>
         <button class="feedback-btn" type="button" data-vote="not_useful">Not useful</button>
@@ -84,9 +136,29 @@ function renderResults(articles) {
 
   const statusEl = document.getElementById("feedback-status");
   const buttons = Array.from(container.querySelectorAll(".feedback-btn"));
+  // Keep summary hidden for now until enough feedback data exists.
+  // summaryEl.textContent = renderSummary(currentFeedbackContext.summary);
+
+  function lockVote(vote, message) {
+    buttons.forEach((item) => {
+      item.disabled = true;
+      item.classList.toggle("is-selected", item.dataset.vote === vote);
+    });
+    statusEl.textContent = message;
+  }
+
+  getStoredVote().then((existingVote) => {
+    if (existingVote) {
+      lockVote(existingVote, "You already voted on this recommendation set.");
+    }
+  });
 
   buttons.forEach((button) => {
     button.addEventListener("click", async () => {
+      if (await getStoredVote()) {
+        return;
+      }
+
       const vote = button.dataset.vote;
       statusEl.textContent = "Saving...";
       buttons.forEach((item) => {
@@ -95,10 +167,10 @@ function renderResults(articles) {
 
       try {
         await saveFeedback(vote);
-        buttons.forEach((item) => {
-          item.classList.toggle("is-selected", item === button);
-        });
-        statusEl.textContent = "Thanks. Your feedback was saved.";
+        await setStoredVote(vote);
+        // Keep summary hidden for now until enough feedback data exists.
+        // summaryEl.textContent = renderSummary(payload.summary);
+        lockVote(vote, "Thanks. Your feedback was saved.");
       } catch (error) {
         console.error(error);
         statusEl.textContent = "Could not save feedback.";

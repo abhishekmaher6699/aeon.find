@@ -3,7 +3,7 @@
   "name": "Aeon.Find",
   "version": "1.0",
   "description": "Get essay recommendations while reading Aeon.",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "storage"],
   "host_permissions": [
     "https://aeon.co/*",
     "https://images.aeonmedia.co/*",

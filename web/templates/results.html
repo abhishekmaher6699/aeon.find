@@ -160,6 +160,15 @@
     line-height: 1.5;
   }
 
+  /* Keep summary styles commented out until enough feedback data exists. */
+  /*
+  .feedback-summary {
+    font-size: 0.78rem;
+    color: var(--ink);
+    min-height: 1.1rem;
+  }
+  */
+
   .feedback-actions {
     display: flex;
     align-items: center;
@@ -242,31 +251,71 @@
       Were these 10 recommendations useful overall?
     </div>
     <div class="feedback-actions">
+      <!-- Keep summary hidden for now until enough feedback data exists. -->
+      <!-- <div class="feedback-summary" id="feedback-summary" aria-live="polite"></div> -->
       <button class="feedback-btn" type="button" data-vote="useful">Useful</button>
       <button class="feedback-btn" type="button" data-vote="not_useful">Not useful</button>
       <div class="feedback-status" id="feedback-status" aria-live="polite"></div>
     </div>
   </div>
-  {{ recommendations|json_script:"recommendation-data" }}
+  {{ feedback_context|json_script:"feedback-context-data" }}
   <script>
     (() => {
       const feedbackPanel = document.getElementById("feedback-panel");
       const statusEl = document.getElementById("feedback-status");
       const buttons = Array.from(feedbackPanel.querySelectorAll("[data-vote]"));
-      const recommendations = JSON.parse(
-        document.getElementById("recommendation-data").textContent
+      const feedbackContext = JSON.parse(
+        document.getElementById("feedback-context-data").textContent
       );
+      const storageVoteKey = `aeon-feedback-vote:${feedbackContext.result_set_id}`;
+      const anonymousIdKey = "aeon-feedback-anonymous-id";
+
+      function createAnonymousId() {
+        if (window.crypto && window.crypto.randomUUID) {
+          return window.crypto.randomUUID();
+        }
+        return `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      function getAnonymousId() {
+        let anonymousId = localStorage.getItem(anonymousIdKey);
+        if (!anonymousId) {
+          anonymousId = createAnonymousId();
+          localStorage.setItem(anonymousIdKey, anonymousId);
+        }
+        return anonymousId;
+      }
+
+      // Keep summary rendering commented out for now until enough feedback data exists.
+      /*
+      function renderSummary(summary) {
+        if (!summary.total_votes) {
+          return "No feedback yet.";
+        }
+        return `${summary.useful_percentage}% found this useful (${summary.total_votes} vote${summary.total_votes === 1 ? "" : "s"}).`;
+      }
+      */
+
+      function lockVote(vote, message) {
+        localStorage.setItem(storageVoteKey, vote);
+        buttons.forEach((item) => {
+          item.disabled = true;
+          item.classList.toggle("is-selected", item.dataset.vote === vote);
+        });
+        statusEl.textContent = message;
+      }
 
       async function saveFeedback(vote) {
         const response = await fetch("/api/feedback/recommendation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            anonymous_id: getAnonymousId(),
             surface: "web",
             input_type: "{{ mode|escapejs }}",
             input_value: "{{ query|escapejs }}",
             vote,
-            recommendations: recommendations.map((item) => ({
+            recommendations: feedbackContext.recommendations.map((item) => ({
               url: item.url,
               title: item.title,
             })),
@@ -276,10 +325,23 @@
         if (!response.ok) {
           throw new Error("Could not save feedback.");
         }
+        return response.json();
+      }
+
+      // Keep summary hidden for now until enough feedback data exists.
+      // summaryEl.textContent = renderSummary(feedbackContext.summary);
+
+      const existingVote = localStorage.getItem(storageVoteKey);
+      if (existingVote) {
+        lockVote(existingVote, "You already voted on this recommendation set.");
       }
 
       buttons.forEach((button) => {
         button.addEventListener("click", async () => {
+          if (localStorage.getItem(storageVoteKey)) {
+            return;
+          }
+
           const vote = button.dataset.vote;
           statusEl.textContent = "Saving...";
           buttons.forEach((item) => {
@@ -288,10 +350,9 @@
 
           try {
             await saveFeedback(vote);
-            buttons.forEach((item) => {
-              item.classList.toggle("is-selected", item === button);
-            });
-            statusEl.textContent = "Thanks. Your feedback was saved.";
+            // Keep summary hidden for now until enough feedback data exists.
+            // summaryEl.textContent = renderSummary(payload.summary);
+            lockVote(vote, "Thanks. Your feedback was saved.");
           } catch (error) {
             statusEl.textContent = "Could not save feedback. Please try again.";
             buttons.forEach((item) => {

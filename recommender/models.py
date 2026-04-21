@@ -23,6 +23,9 @@ class RecommendationFeedback(models.Model):
         (VOTE_NOT_USEFUL, "Not useful"),
     ]
 
+    anonymous_id = models.CharField(max_length=100, blank=True, default="")
+    result_set_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    recommender_version = models.CharField(max_length=100, blank=True, default="")
     surface = models.CharField(max_length=20, choices=SURFACE_CHOICES)
     input_type = models.CharField(max_length=20, choices=INPUT_TYPE_CHOICES)
     input_value = models.TextField()
@@ -34,4 +37,7 @@ class RecommendationFeedback(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.get_surface_display()} {self.get_vote_display()} ({self.created_at:%Y-%m-%d %H:%M})"
+        return (
+            f"{self.get_surface_display()} {self.get_vote_display()} "
+            f"{self.recommender_version or 'unknown'} ({self.created_at:%Y-%m-%d %H:%M})"
+        )

@@ -1,5 +1,6 @@
 from django.shortcuts import render
 import logging
+from recommender.feedback import build_feedback_context
 from recommender.engine import recommend_by_url, recommend_by_prompt
 
 logger = logging.getLogger("web")
@@ -44,10 +45,17 @@ def results(request):
             'mode': mode,
         })
 
+    feedback_context = build_feedback_context(
+        input_type=mode,
+        input_value=query,
+        recommendations=recommendations,
+    )
+
     return render(request, 'results.html', {
         'recommendations': recommendations,
         'query': query,
         'mode': mode,
+        'feedback_context': feedback_context,
     })
 
 

@@ -90,6 +90,7 @@ STATICFILES_DIRS = [BASE_DIR / 'web' / 'static']
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 ARTIFACTS_DIR = Path(os.getenv('ARTIFACTS_DIR', BASE_DIR / 'artifacts'))
+RECOMMENDER_VERSION = os.getenv('RECOMMENDER_VERSION', 'tfidf-embedding-v1')
 
 CORS_ALLOW_ALL_ORIGINS = os.getenv('DEBUG', 'False') == 'True'
 CORS_ALLOWED_ORIGINS = [o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o]
