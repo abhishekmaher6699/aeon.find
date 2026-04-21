@@ -1,7 +1,9 @@
 from ninja import NinjaAPI, Schema
+import logging
 from recommender.engine import recommend_by_url, recommend_by_prompt
 
 api = NinjaAPI()
+logger = logging.getLogger("web")
 
 
 class UrlRequest(Schema):
@@ -21,9 +23,15 @@ class ArticleResult(Schema):
 
 @api.post("/recommend/url", response=list[ArticleResult])
 def recommend_url(request, payload: UrlRequest):
-    return recommend_by_url(payload.url)
+    logger.info("API recommend_url called | url=%s", payload.url)
+    results = recommend_by_url(payload.url)
+    logger.info("API recommend_url completed | url=%s count=%s", payload.url, len(results))
+    return results
 
 
 @api.post("/recommend/prompt", response=list[ArticleResult])
 def recommend_prompt(request, payload: PromptRequest):
-    return recommend_by_prompt(payload.prompt)
+    logger.info("API recommend_prompt called | prompt_chars=%s", len(payload.prompt))
+    results = recommend_by_prompt(payload.prompt)
+    logger.info("API recommend_prompt completed | count=%s", len(results))
+    return results

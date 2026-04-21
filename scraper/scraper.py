@@ -1,20 +1,13 @@
-import httpx
+import logging
 import time
+
+import httpx
 from bs4 import BeautifulSoup
+
 from .models import Article
 
-import logging
-import os
-
-os.makedirs('logs', exist_ok=True)
-
-logger = logging.getLogger('scraper')
-logger.setLevel(logging.ERROR)
-handler = logging.FileHandler('logs/scraper_errors.log')
-handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
-logger.addHandler(handler)
-
 GRAPHQL_URL = "https://api.aeonmedia.co/graphql"
+logger = logging.getLogger("scraper")
 
 QUERY = """
 query getAeonArticlesByType($type: [ArticleTypeEnum!], $afterCursor: String) {
@@ -41,31 +34,86 @@ def fetch_page(after_cursor=None):
     variables = {"type": ["essay"]}
     if after_cursor:
         variables["afterCursor"] = after_cursor
-    response = httpx.post(GRAPHQL_URL, json={"query": QUERY, "variables": variables}, headers=HEADERS, timeout=30)
+
+    logger.info("Fetching article page from GraphQL | after_cursor=%s", after_cursor)
+    response = httpx.post(
+        GRAPHQL_URL,
+        json={"query": QUERY, "variables": variables},
+        headers=HEADERS,
+        timeout=30,
+    )
     response.raise_for_status()
-    return response.json()["data"]["articles"]
+
+    articles = response.json()["data"]["articles"]
+    logger.info(
+        "Fetched GraphQL page | status=%s nodes=%s has_next=%s end_cursor=%s",
+        response.status_code,
+        len(articles["nodes"]),
+        articles["pageInfo"]["hasNextPage"],
+        articles["pageInfo"]["endCursor"],
+    )
+    return articles
 
 
 def scrape_content(slug):
-    # time.sleep(0.5)
     url = f"https://aeon.co/essays/{slug}"
+    logger.info("Scraping content | slug=%s url=%s", slug, url)
+
     try:
         response = httpx.get(url, headers=HEADERS, timeout=30, follow_redirects=True)
         if response.status_code == 429:
-            print(f"Rate limited on {slug}, waiting 10s...")
+            logger.warning("Rate limited while scraping | slug=%s wait_seconds=10", slug)
             time.sleep(10)
             response = httpx.get(url, headers=HEADERS, timeout=30, follow_redirects=True)
         response.raise_for_status()
+
+        final_url = str(response.url)
+        content_type = response.headers.get("content-type", "")
+        logger.info(
+            "Scrape response received | slug=%s status=%s final_url=%s content_type=%s bytes=%s",
+            slug,
+            response.status_code,
+            final_url,
+            content_type,
+            len(response.text),
+        )
+
         soup = BeautifulSoup(response.text, "html.parser")
+        page_title = soup.title.get_text(strip=True) if soup.title else ""
         article_div = soup.find(id="article-content")
         if not article_div:
+            logger.warning(
+                "article-content container missing | slug=%s final_url=%s page_title=%s body_preview=%s",
+                slug,
+                final_url,
+                page_title[:120],
+                soup.get_text(" ", strip=True)[:240],
+            )
             return ""
+
         dropcap_div = article_div.find(class_="has-dropcap")
         if not dropcap_div:
+            logger.warning(
+                "has-dropcap container missing | slug=%s final_url=%s page_title=%s article_preview=%s",
+                slug,
+                final_url,
+                page_title[:120],
+                article_div.get_text(" ", strip=True)[:240],
+            )
             return ""
-        return " ".join(p.get_text() for p in dropcap_div.find_all("p"))
+
+        paragraphs = [p.get_text(" ", strip=True) for p in dropcap_div.find_all("p")]
+        content = " ".join(p for p in paragraphs if p)
+        logger.info(
+            "Scrape parsed successfully | slug=%s paragraphs=%s content_chars=%s content_preview=%s",
+            slug,
+            len(paragraphs),
+            len(content),
+            content[:240],
+        )
+        return content
     except Exception as e:
-        print(f"Failed to scrape content for {slug}: {e}")
+        logger.exception("Failed to scrape content | slug=%s url=%s error=%s", slug, url, e)
         return ""
 
 
@@ -77,12 +125,13 @@ def run_scraper():
     while not stop:
         data = fetch_page(cursor)
         nodes = data["nodes"]
+        logger.info("Processing fetched nodes | count=%s", len(nodes))
 
         for node in nodes:
             slug = node["slug"]
 
             if Article.objects.filter(slug=slug).exists():
-                print(f"Already exists, stopping: {slug}")
+                logger.info("Article already exists, stopping scraper loop | slug=%s", slug)
                 stop = True
                 break
 
@@ -100,30 +149,37 @@ def run_scraper():
                     image_url=node["image"]["url"] if node.get("image") else "",
                     content=content,
                 )
-            except Exception as e:
-                error_msg = (
-                    f"FAILED: {slug} | Error: {e} | "
-                    f"title={len(node['title'])} | "
-                    f"author={len(node['authors'][0]['name']) if node['authors'] else 0} | "
-                    f"category={len(node['primaryTopic']['title']) if node.get('primaryTopic') else 0} | "
-                    f"slug={len(slug)} | "
-                    f"description={len(node.get('standfirstLong', ''))} | "
-                    f"image_url={len(node['image']['url']) if node.get('image') else 0} | "
-                    f"section={len(node['section']['slug']) if node.get('section') else 0}"
+                logger.info(
+                    "Article created | slug=%s title=%s content_chars=%s",
+                    slug,
+                    node["title"][:120],
+                    len(content),
                 )
-                logger.error(error_msg)
-                print(f"FAILED: {slug} — logged to logs/scraper_errors.log")
-                continue  # skip to next article
+            except Exception as e:
+                logger.exception(
+                    "Failed to create article | slug=%s title_len=%s author_len=%s category_len=%s "
+                    "description_len=%s image_url_len=%s section_len=%s content_chars=%s error=%s",
+                    slug,
+                    len(node["title"]),
+                    len(node["authors"][0]["name"]) if node["authors"] else 0,
+                    len(node["primaryTopic"]["title"]) if node.get("primaryTopic") else 0,
+                    len(node.get("standfirstLong", "")),
+                    len(node["image"]["url"]) if node.get("image") else 0,
+                    len(node["section"]["slug"]) if node.get("section") else 0,
+                    len(content),
+                    e,
+                )
+                continue
 
-            total += 1  # move this inside try, after Article.objects.create
+            total += 1
             if total % 50 == 0:
-                print(f"Total articles saved: {total}")
+                logger.info("Scraper progress | total_saved=%s", total)
 
         if not data["pageInfo"]["hasNextPage"]:
-            print("All pages exhausted.")
+            logger.info("All pages exhausted")
             break
 
         if not stop:
             cursor = data["pageInfo"]["endCursor"]
 
-    print(f"Scraper done. Total saved: {total}")
+    logger.info("Scraper finished | total_saved=%s stop=%s final_cursor=%s", total, stop, cursor)

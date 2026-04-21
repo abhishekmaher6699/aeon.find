@@ -13,5 +13,7 @@ services:
         sync: false
       - key: DEBUG
         value: False
+      - key: LOG_LEVEL
+        value: INFO
       - key: ARTIFACTS_DIR
         value: /app/artifacts
