@@ -141,10 +141,71 @@
     color: var(--ink);
   }
 
+  .feedback-panel {
+    margin-top: 1.5rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .feedback-copy {
+    font-size: 0.84rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .feedback-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .feedback-btn {
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .feedback-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .feedback-btn.is-selected {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .feedback-btn:disabled {
+    cursor: default;
+    opacity: 0.75;
+  }
+
+  .feedback-status {
+    font-size: 0.76rem;
+    color: var(--accent);
+    min-height: 1.1rem;
+  }
+
   @media (max-width: 600px) {
     .results-header { flex-direction: column; align-items: flex-start; }
     .search-again input { width: 180px; }
     .grid { grid-template-columns: 1fr; }
+    .feedback-panel { align-items: flex-start; }
   }
 </style>
 {% endblock %}
@@ -176,6 +237,71 @@
     </a>
     {% endfor %}
   </div>
+  <div class="feedback-panel" id="feedback-panel">
+    <div class="feedback-copy">
+      Were these 10 recommendations useful overall?
+    </div>
+    <div class="feedback-actions">
+      <button class="feedback-btn" type="button" data-vote="useful">Useful</button>
+      <button class="feedback-btn" type="button" data-vote="not_useful">Not useful</button>
+      <div class="feedback-status" id="feedback-status" aria-live="polite"></div>
+    </div>
+  </div>
+  {{ recommendations|json_script:"recommendation-data" }}
+  <script>
+    (() => {
+      const feedbackPanel = document.getElementById("feedback-panel");
+      const statusEl = document.getElementById("feedback-status");
+      const buttons = Array.from(feedbackPanel.querySelectorAll("[data-vote]"));
+      const recommendations = JSON.parse(
+        document.getElementById("recommendation-data").textContent
+      );
+
+      async function saveFeedback(vote) {
+        const response = await fetch("/api/feedback/recommendation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            surface: "web",
+            input_type: "{{ mode|escapejs }}",
+            input_value: "{{ query|escapejs }}",
+            vote,
+            recommendations: recommendations.map((item) => ({
+              url: item.url,
+              title: item.title,
+            })),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Could not save feedback.");
+        }
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", async () => {
+          const vote = button.dataset.vote;
+          statusEl.textContent = "Saving...";
+          buttons.forEach((item) => {
+            item.disabled = true;
+          });
+
+          try {
+            await saveFeedback(vote);
+            buttons.forEach((item) => {
+              item.classList.toggle("is-selected", item === button);
+            });
+            statusEl.textContent = "Thanks. Your feedback was saved.";
+          } catch (error) {
+            statusEl.textContent = "Could not save feedback. Please try again.";
+            buttons.forEach((item) => {
+              item.disabled = false;
+            });
+          }
+        });
+      });
+    })();
+  </script>
 {% else %}
   <div class="no-results">
     <h2>No results found</h2>

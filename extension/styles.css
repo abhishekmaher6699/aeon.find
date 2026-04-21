@@ -170,6 +170,61 @@ body {
   gap: 0;
 }
 
+.feedback-panel {
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.feedback-copy {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.feedback-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feedback-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.feedback-btn.is-selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.feedback-btn:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.feedback-status {
+  margin-top: 8px;
+  min-height: 14px;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
 /* ── Card ── */
 .card {
   position: relative;
